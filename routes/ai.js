@@ -1,0 +1,448 @@
+const express = require('express');
+const { body, validationResult } = require('express-validator');
+const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
+const Project = require('../models/Project');
+const User = require('../models/User');
+
+const router = express.Router();
+
+// Initialize AI clients
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+});
+
+// AI Code Generation
+router.post('/generate-code', [
+  body('prompt').notEmpty().withMessage('Prompt is required'),
+  body('projectId').isMongoId().withMessage('Valid project ID is required'),
+  body('language').optional().isIn(['javascript', 'typescript', 'python', 'java', 'csharp', 'go', 'rust', 'php', 'ruby']),
+  body('framework').optional().isIn(['react', 'vue', 'angular', 'express', 'django', 'flask', 'spring', 'laravel', 'rails'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { prompt, projectId, language = 'javascript', framework, context, model = 'gpt-4' } = req.body;
+    const userId = req.user.userId;
+
+    // Get project and verify access
+    const project = await Project.findById(projectId);
+    if (!project || !project.canAccess(userId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    // Get user to check tokens
+    const user = await User.findById(userId);
+    const estimatedTokens = Math.ceil(prompt.length / 4) + 1000; // Rough estimation
+
+    if (!user.hasEnoughTokens(estimatedTokens)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient tokens',
+        message: `You need ${estimatedTokens} tokens but have ${user.subscription.tokens}`
+      });
+    }
+
+    // Prepare context for AI
+    const systemPrompt = `You are an expert ${language} developer specializing in ${framework || 'web development'}. 
+    Generate clean, production-ready code that follows best practices. 
+    Include proper error handling, comments, and documentation.
+    ${context ? `Context: ${context}` : ''}`;
+
+    let generatedCode;
+    let tokensUsed = 0;
+
+    try {
+      if (model.startsWith('gpt')) {
+        const completion = await openai.chat.completions.create({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7
+        });
+
+        generatedCode = completion.choices[0].message.content;
+        tokensUsed = completion.usage.total_tokens;
+      } else if (model.startsWith('claude')) {
+        const message = await anthropic.messages.create({
+          model: 'claude-3-sonnet-20240229',
+          max_tokens: 2000,
+          messages: [
+            { role: 'user', content: `${systemPrompt}\n\nUser request: ${prompt}` }
+          ]
+        });
+
+        generatedCode = message.content[0].text;
+        tokensUsed = message.usage.input_tokens + message.usage.output_tokens;
+      }
+
+      // Deduct tokens from user
+      user.deductTokens(tokensUsed);
+      await user.save();
+
+      // Update project AI usage
+      project.aiFeatures.codeGeneration.tokensUsed += tokensUsed;
+      await project.save();
+
+      res.json({
+        success: true,
+        data: {
+          generatedCode,
+          tokensUsed,
+          model,
+          language,
+          framework
+        }
+      });
+
+    } catch (aiError) {
+      console.error('AI generation error:', aiError);
+      res.status(500).json({
+        success: false,
+        error: 'AI code generation failed',
+        message: aiError.message
+      });
+    }
+
+  } catch (error) {
+    console.error('Generate code error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Code generation failed'
+    });
+  }
+});
+
+// AI Code Review
+router.post('/review-code', [
+  body('code').notEmpty().withMessage('Code is required'),
+  body('projectId').isMongoId().withMessage('Valid project ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { code, projectId, language = 'javascript' } = req.body;
+    const userId = req.user.userId;
+
+    // Get project and verify access
+    const project = await Project.findById(projectId);
+    if (!project || !project.canAccess(userId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    const systemPrompt = `You are an expert code reviewer. Analyze the provided ${language} code and provide:
+    1. Code quality assessment (1-10)
+    2. Security issues
+    3. Performance improvements
+    4. Best practices violations
+    5. Suggestions for improvement
+    6. Overall recommendation`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Please review this code:\n\n${code}` }
+      ],
+      max_tokens: 1500,
+      temperature: 0.3
+    });
+
+    const review = completion.choices[0].message.content;
+    const tokensUsed = completion.usage.total_tokens;
+
+    // Deduct tokens
+    const user = await User.findById(userId);
+    user.deductTokens(tokensUsed);
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        review,
+        tokensUsed,
+        language
+      }
+    });
+
+  } catch (error) {
+    console.error('Code review error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Code review failed'
+    });
+  }
+});
+
+// AI Debugging
+router.post('/debug-code', [
+  body('code').notEmpty().withMessage('Code is required'),
+  body('error').notEmpty().withMessage('Error message is required'),
+  body('projectId').isMongoId().withMessage('Valid project ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { code, error, projectId, language = 'javascript' } = req.body;
+    const userId = req.user.userId;
+
+    // Get project and verify access
+    const project = await Project.findById(projectId);
+    if (!project || !project.canAccess(userId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    const systemPrompt = `You are an expert debugger. Analyze the provided ${language} code and error message.
+    Provide:
+    1. Root cause analysis
+    2. Step-by-step debugging approach
+    3. Fixed code solution
+    4. Prevention strategies
+    5. Additional testing recommendations`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Code:\n${code}\n\nError:\n${error}` }
+      ],
+      max_tokens: 2000,
+      temperature: 0.2
+    });
+
+    const debugAnalysis = completion.choices[0].message.content;
+    const tokensUsed = completion.usage.total_tokens;
+
+    // Deduct tokens
+    const user = await User.findById(userId);
+    user.deductTokens(tokensUsed);
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        debugAnalysis,
+        tokensUsed,
+        language
+      }
+    });
+
+  } catch (error) {
+    console.error('Debug code error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Code debugging failed'
+    });
+  }
+});
+
+// AI Test Generation
+router.post('/generate-tests', [
+  body('code').notEmpty().withMessage('Code is required'),
+  body('projectId').isMongoId().withMessage('Valid project ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { code, projectId, testFramework = 'jest', language = 'javascript' } = req.body;
+    const userId = req.user.userId;
+
+    // Get project and verify access
+    const project = await Project.findById(projectId);
+    if (!project || !project.canAccess(userId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    const systemPrompt = `You are an expert in ${testFramework} testing. Generate comprehensive unit tests for the provided ${language} code.
+    Include:
+    1. Test cases for all functions/methods
+    2. Edge cases and error scenarios
+    3. Mocking where appropriate
+    4. Setup and teardown if needed
+    5. Clear test descriptions`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate tests for this code:\n\n${code}` }
+      ],
+      max_tokens: 2500,
+      temperature: 0.3
+    });
+
+    const generatedTests = completion.choices[0].message.content;
+    const tokensUsed = completion.usage.total_tokens;
+
+    // Deduct tokens
+    const user = await User.findById(userId);
+    user.deductTokens(tokensUsed);
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        generatedTests,
+        tokensUsed,
+        testFramework,
+        language
+      }
+    });
+
+  } catch (error) {
+    console.error('Generate tests error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Test generation failed'
+    });
+  }
+});
+
+// AI Documentation Generation
+router.post('/generate-docs', [
+  body('code').notEmpty().withMessage('Code is required'),
+  body('projectId').isMongoId().withMessage('Valid project ID is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { code, projectId, format = 'markdown', language = 'javascript' } = req.body;
+    const userId = req.user.userId;
+
+    // Get project and verify access
+    const project = await Project.findById(projectId);
+    if (!project || !project.canAccess(userId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    const systemPrompt = `You are an expert technical writer. Generate comprehensive documentation for the provided ${language} code in ${format} format.
+    Include:
+    1. Overview and purpose
+    2. Function/method descriptions
+    3. Parameters and return values
+    4. Usage examples
+    5. Error handling
+    6. Dependencies`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate documentation for this code:\n\n${code}` }
+      ],
+      max_tokens: 2000,
+      temperature: 0.3
+    });
+
+    const documentation = completion.choices[0].message.content;
+    const tokensUsed = completion.usage.total_tokens;
+
+    // Deduct tokens
+    const user = await User.findById(userId);
+    user.deductTokens(tokensUsed);
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        documentation,
+        tokensUsed,
+        format,
+        language
+      }
+    });
+
+  } catch (error) {
+    console.error('Generate docs error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Documentation generation failed'
+    });
+  }
+});
+
+// Get AI Usage Statistics
+router.get('/usage/:projectId', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const userId = req.user.userId;
+
+    const project = await Project.findById(projectId);
+    if (!project || !project.canAccess(userId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found or access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        tokensUsed: project.aiFeatures.codeGeneration.tokensUsed,
+        features: project.aiFeatures,
+        lastUsed: project.updatedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Get usage error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get usage statistics'
+    });
+  }
+});
+
+module.exports = router;

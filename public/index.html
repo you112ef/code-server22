@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pythagora AI Platform v2.0 - Advanced AI Development Platform</title>
+    <meta name="description" content="World's first all-in-one AI development platform with real debugging tools, production features, and collaborative development.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    
+    <!-- Theme -->
+    <script>
+        // Theme detection and application
+        (function() {
+            const savedTheme = localStorage.getItem('pythagora-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="60" height="60" rx="12" fill="url(#gradient)"/>
+                    <path d="M20 20L40 20L30 40L20 20Z" fill="white"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea"/>
+                            <stop offset="100%" style="stop-color:#764ba2"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h2>Pythagora AI Platform</h2>
+            <p>Initializing advanced AI development environment...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app" style="display: none;">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="32" height="32" rx="6" fill="url(#logo-gradient)"/>
+                        <path d="M10 10L22 10L16 22L10 10Z" fill="white"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea"/>
+                                <stop offset="100%" style="stop-color:#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <span class="brand-text">Pythagora AI</span>
+            </div>
+            
+            <div class="navbar-nav">
+                <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="#projects" class="nav-link" data-section="projects">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10,9 9,9 8,9"/>
+                    </svg>
+                    Projects
+                </a>
+                <a href="#ai-studio" class="nav-link" data-section="ai-studio">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                    </svg>
+                    AI Studio
+                </a>
+                <a href="#collaboration" class="nav-link" data-section="collaboration">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Collaboration
+                </a>
+                <a href="#deployment" class="nav-link" data-section="deployment">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27,6.96 12,12.01 20.73,6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    Deployment
+                </a>
+            </div>
+            
+            <div class="navbar-actions">
+                <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                    <svg class="theme-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                </button>
+                
+                <div class="user-menu">
+                    <button class="user-avatar" id="user-avatar">
+                        <img src="/images/default-avatar.png" alt="User Avatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM2NjdFRUEiLz4KPHBhdGggZD0iTTE2IDEwQzE4LjIwOTEgMTAgMjAgMTEuNzkwOSAyMCAxNFYxNkMyMCAxOC4yMDkxIDE4LjIwOTEgMjAgMTYgMjBDMTMuNzkwOSAyMCAxMiAxOC4yMDkxIDEyIDE2VjE0QzEyIDExLjc5MDkgMTMuNzkwOSAxMCAxNiAxMFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='">
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info">
+                            <div class="user-name" id="user-name">John Doe</div>
+                            <div class="user-email" id="user-email">john@example.com</div>
+                        </div>
+                        <div class="user-plan">
+                            <span class="plan-badge" id="user-plan">Pro Plan</span>
+                            <span class="tokens" id="user-tokens">9,990,500 / 10M tokens</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="#profile" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Profile Settings
+                        </a>
+                        <a href="#billing" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                            Billing & Usage
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item logout" id="logout-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16,17 21,12 16,7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="content-section active">
+                <div class="section-header">
+                    <h1>Dashboard</h1>
+                    <p>Welcome back! Here's what's happening with your projects.</p>
+                </div>
+                
+                <div class="dashboard-grid">
+                    <!-- Quick Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14,2 14,8 20,8"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="total-projects">12</div>
+                                <div class="stat-label">Active Projects</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="ai-tokens-used">2,450,000</div>
+                                <div class="stat-label">AI Tokens Used</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="deployments">8</div>
+                                <div class="stat-label">Deployments</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="collaborators">24</div>
+                                <div class="stat-label">Collaborators</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Projects -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Recent Projects</h3>
+                            <a href="#projects" class="view-all">View All</a>
+                        </div>
+                        <div class="project-list" id="recent-projects">
+                            <!-- Projects will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- AI Activity -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>AI Activity</h3>
+                        </div>
+                        <div class="ai-activity" id="ai-activity">
+                            <!-- AI activity will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projects Section -->
+            <section id="projects-section" class="content-section">
+                <div class="section-header">
+                    <h1>Projects</h1>
+                    <button class="btn btn-primary" id="create-project-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Project
+                    </button>
+                </div>
+                
+                <div class="projects-grid" id="projects-grid">
+                    <!-- Projects will be loaded here -->
+                </div>
+            </section>
+
+            <!-- AI Studio Section -->
+            <section id="ai-studio-section" class="content-section">
+                <div class="section-header">
+                    <h1>AI Studio</h1>
+                    <p>Generate, review, and debug code with advanced AI assistance.</p>
+                </div>
+                
+                <div class="ai-studio-layout">
+                    <div class="ai-panel">
+                        <div class="ai-tabs">
+                            <button class="ai-tab active" data-tab="generate">Code Generation</button>
+                            <button class="ai-tab" data-tab="review">Code Review</button>
+                            <button class="ai-tab" data-tab="debug">Debug Assistant</button>
+                            <button class="ai-tab" data-tab="tests">Test Generation</button>
+                        </div>
+                        
+                        <div class="ai-content">
+                            <div id="generate-tab" class="ai-tab-content active">
+                                <div class="ai-input-section">
+                                    <label for="ai-prompt">Describe what you want to build:</label>
+                                    <textarea id="ai-prompt" placeholder="e.g., Create a React component for user authentication with form validation..."></textarea>
+                                    <div class="ai-options">
+                                        <select id="ai-language">
+                                            <option value="javascript">JavaScript</option>
+                                            <option value="typescript">TypeScript</option>
+                                            <option value="python">Python</option>
+                                            <option value="java">Java</option>
+                                            <option value="csharp">C#</option>
+                                        </select>
+                                        <select id="ai-framework">
+                                            <option value="react">React</option>
+                                            <option value="vue">Vue.js</option>
+                                            <option value="angular">Angular</option>
+                                            <option value="express">Express.js</option>
+                                            <option value="django">Django</option>
+                                        </select>
+                                        <button class="btn btn-primary" id="generate-code-btn">Generate Code</button>
+                                    </div>
+                                </div>
+                                <div class="ai-output-section">
+                                    <div class="output-header">
+                                        <h4>Generated Code</h4>
+                                        <div class="output-actions">
+                                            <button class="btn btn-secondary" id="copy-code-btn">Copy</button>
+                                            <button class="btn btn-secondary" id="save-code-btn">Save to Project</button>
+                                        </div>
+                                    </div>
+                                    <pre class="code-output" id="generated-code"><code>// Your generated code will appear here...</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Other sections will be added here -->
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal" id="create-project-modal">
+            <div class="modal-header">
+                <h3>Create New Project</h3>
+                <button class="modal-close" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-project-form">
+                    <div class="form-group">
+                        <label for="project-name">Project Name</label>
+                        <input type="text" id="project-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-description">Description</label>
+                        <textarea id="project-description" rows="3"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="project-type">Type</label>
+                            <select id="project-type">
+                                <option value="web-app">Web Application</option>
+                                <option value="mobile-app">Mobile App</option>
+                                <option value="api">API</option>
+                                <option value="desktop-app">Desktop App</option>
+                                <option value="ai-model">AI Model</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="project-framework">Framework</label>
+                            <select id="project-framework">
+                                <option value="react">React</option>
+                                <option value="vue">Vue.js</option>
+                                <option value="angular">Angular</option>
+                                <option value="express">Express.js</option>
+                                <option value="django">Django</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-language">Language</label>
+                        <select id="project-language">
+                            <option value="javascript">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="python">Python</option>
+                            <option value="java">Java</option>
+                            <option value="csharp">C#</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-project">Cancel</button>
+                <button class="btn btn-primary" id="create-project-submit">Create Project</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/ai-studio.js"></script>
+    <script src="/js/projects.js"></script>
+    <script src="/js/collaboration.js"></script>
+</body>
+</html>
