@@ -297,6 +297,7 @@
                             <button class="ai-tab" data-tab="review">Code Review</button>
                             <button class="ai-tab" data-tab="debug">Debug Assistant</button>
                             <button class="ai-tab" data-tab="tests">Test Generation</button>
+                            <button class="ai-tab" data-tab="providers">AI Providers</button>
                         </div>
                         
                         <div class="ai-content">
@@ -319,6 +320,12 @@
                                             <option value="express">Express.js</option>
                                             <option value="django">Django</option>
                                         </select>
+                                        <select id="ai-model">
+                                            <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                            <option value="openai/gpt-4">GPT-4</option>
+                                            <option value="anthropic/claude-3-sonnet">Claude 3 Sonnet</option>
+                                            <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
+                                        </select>
                                         <button class="btn btn-primary" id="generate-code-btn">Generate Code</button>
                                     </div>
                                 </div>
@@ -331,6 +338,22 @@
                                         </div>
                                     </div>
                                     <pre class="code-output" id="generated-code"><code>// Your generated code will appear here...</code></pre>
+                                </div>
+                            </div>
+                            
+                            <div id="providers-tab" class="ai-tab-content">
+                                <div class="providers-header">
+                                    <h3>AI Providers</h3>
+                                    <button class="btn btn-primary" id="add-provider-btn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add Provider
+                                    </button>
+                                </div>
+                                <div id="providers-container" class="providers-container">
+                                    <!-- Providers will be loaded here -->
                                 </div>
                             </div>
                         </div>
@@ -398,12 +421,104 @@
                 <button class="btn btn-primary" id="create-project-submit">Create Project</button>
             </div>
         </div>
+
+        <!-- Add AI Provider Modal -->
+        <div class="modal" id="add-provider-modal">
+            <div class="modal-header">
+                <h3>Add AI Provider</h3>
+                <button class="modal-close" onclick="aiProvidersManager.hideAddProviderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="provider-form">
+                    <div class="form-group">
+                        <label for="provider-type">Provider Type</label>
+                        <select id="provider-type" name="provider-type" required>
+                            <option value="">Select Provider Type</option>
+                            <option value="openrouter">OpenRouter (All Models)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="custom">Custom Provider</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="display-name">Display Name</label>
+                        <input type="text" id="display-name" name="display-name" required placeholder="e.g., My OpenRouter Account">
+                    </div>
+                    <div class="form-group">
+                        <label for="api-key">API Key</label>
+                        <input type="password" id="api-key" name="api-key" required placeholder="Enter your API key">
+                        <small class="form-help">Your API key will be encrypted and stored securely</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="base-url">Base URL (Optional)</label>
+                        <input type="url" id="base-url" name="base-url" placeholder="https://api.openrouter.ai/v1">
+                        <small class="form-help">Leave empty to use default URL for the provider</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority</label>
+                        <select id="priority" name="priority">
+                            <option value="1">1 (Highest)</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5 (Lowest)</option>
+                        </select>
+                        <small class="form-help">Higher priority providers will be used first</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="aiProvidersManager.hideAddProviderModal()">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="provider-form">Add Provider</button>
+            </div>
+        </div>
+
+        <!-- Edit AI Provider Modal -->
+        <div class="modal" id="edit-provider-modal">
+            <div class="modal-header">
+                <h3>Edit AI Provider</h3>
+                <button class="modal-close" onclick="aiProvidersManager.hideEditProviderModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-provider-form">
+                    <input type="hidden" id="edit-provider-id" name="provider-id">
+                    <div class="form-group">
+                        <label for="edit-display-name">Display Name</label>
+                        <input type="text" id="edit-display-name" name="display-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-api-key">API Key</label>
+                        <input type="password" id="edit-api-key" name="api-key" placeholder="Enter new API key to update">
+                        <small class="form-help">Leave empty to keep current API key</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-base-url">Base URL</label>
+                        <input type="url" id="edit-base-url" name="base-url" placeholder="https://api.openrouter.ai/v1">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-priority">Priority</label>
+                        <select id="edit-priority" name="priority">
+                            <option value="1">1 (Highest)</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5 (Lowest)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="aiProvidersManager.hideEditProviderModal()">Cancel</button>
+                <button class="btn btn-primary" type="submit" form="edit-provider-form">Update Provider</button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
     <script src="/js/socket.io.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/ai-studio.js"></script>
+    <script src="/js/ai-providers.js"></script>
     <script src="/js/projects.js"></script>
     <script src="/js/collaboration.js"></script>
 </body>

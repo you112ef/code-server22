@@ -1,27 +1,18 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const OpenAI = require('openai');
-const Anthropic = require('@anthropic-ai/sdk');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const aiService = require('../services/aiService');
 
 const router = express.Router();
-
-// Initialize AI clients
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-});
 
 // AI Code Generation
 router.post('/generate-code', [
   body('prompt').notEmpty().withMessage('Prompt is required'),
   body('projectId').isMongoId().withMessage('Valid project ID is required'),
   body('language').optional().isIn(['javascript', 'typescript', 'python', 'java', 'csharp', 'go', 'rust', 'php', 'ruby']),
-  body('framework').optional().isIn(['react', 'vue', 'angular', 'express', 'django', 'flask', 'spring', 'laravel', 'rails'])
+  body('framework').optional().isIn(['react', 'vue', 'angular', 'express', 'django', 'flask', 'spring', 'laravel', 'rails']),
+  body('model').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -32,7 +23,7 @@ router.post('/generate-code', [
       });
     }
 
-    const { prompt, projectId, language = 'javascript', framework, context, model = 'gpt-4' } = req.body;
+    const { prompt, projectId, language = 'javascript', framework, context, model = 'openai/gpt-3.5-turbo' } = req.body;
     const userId = req.user.userId;
 
     // Get project and verify access
@@ -62,50 +53,29 @@ router.post('/generate-code', [
     Include proper error handling, comments, and documentation.
     ${context ? `Context: ${context}` : ''}`;
 
-    let generatedCode;
-    let tokensUsed = 0;
-
     try {
-      if (model.startsWith('gpt')) {
-        const completion = await openai.chat.completions.create({
-          model: model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 2000,
-          temperature: 0.7
-        });
-
-        generatedCode = completion.choices[0].message.content;
-        tokensUsed = completion.usage.total_tokens;
-      } else if (model.startsWith('claude')) {
-        const message = await anthropic.messages.create({
-          model: 'claude-3-sonnet-20240229',
-          max_tokens: 2000,
-          messages: [
-            { role: 'user', content: `${systemPrompt}\n\nUser request: ${prompt}` }
-          ]
-        });
-
-        generatedCode = message.content[0].text;
-        tokensUsed = message.usage.input_tokens + message.usage.output_tokens;
-      }
+      // Use the new AI service
+      const result = await aiService.generateText(userId, `${systemPrompt}\n\nUser request: ${prompt}`, {
+        model,
+        maxTokens: 2000,
+        temperature: 0.7
+      });
 
       // Deduct tokens from user
-      user.deductTokens(tokensUsed);
+      user.deductTokens(result.usage.totalTokens);
       await user.save();
 
       // Update project AI usage
-      project.aiFeatures.codeGeneration.tokensUsed += tokensUsed;
+      project.aiFeatures.codeGeneration.tokensUsed += result.usage.totalTokens;
       await project.save();
 
       res.json({
         success: true,
         data: {
-          generatedCode,
-          tokensUsed,
-          model,
+          generatedCode: result.text,
+          tokensUsed: result.usage.totalTokens,
+          model: result.model,
+          provider: result.provider,
           language,
           framework
         }
@@ -132,7 +102,8 @@ router.post('/generate-code', [
 // AI Code Review
 router.post('/review-code', [
   body('code').notEmpty().withMessage('Code is required'),
-  body('projectId').isMongoId().withMessage('Valid project ID is required')
+  body('projectId').isMongoId().withMessage('Valid project ID is required'),
+  body('model').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -143,7 +114,7 @@ router.post('/review-code', [
       });
     }
 
-    const { code, projectId, language = 'javascript' } = req.body;
+    const { code, projectId, language = 'javascript', model = 'openai/gpt-4' } = req.body;
     const userId = req.user.userId;
 
     // Get project and verify access
@@ -163,32 +134,37 @@ router.post('/review-code', [
     5. Suggestions for improvement
     6. Overall recommendation`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Please review this code:\n\n${code}` }
-      ],
-      max_tokens: 1500,
-      temperature: 0.3
-    });
+    try {
+      const result = await aiService.generateText(userId, `${systemPrompt}\n\nPlease review this code:\n\n${code}`, {
+        model,
+        maxTokens: 1500,
+        temperature: 0.3
+      });
 
-    const review = completion.choices[0].message.content;
-    const tokensUsed = completion.usage.total_tokens;
+      // Deduct tokens
+      const user = await User.findById(userId);
+      user.deductTokens(result.usage.totalTokens);
+      await user.save();
 
-    // Deduct tokens
-    const user = await User.findById(userId);
-    user.deductTokens(tokensUsed);
-    await user.save();
+      res.json({
+        success: true,
+        data: {
+          review: result.text,
+          tokensUsed: result.usage.totalTokens,
+          model: result.model,
+          provider: result.provider,
+          language
+        }
+      });
 
-    res.json({
-      success: true,
-      data: {
-        review,
-        tokensUsed,
-        language
-      }
-    });
+    } catch (aiError) {
+      console.error('AI review error:', aiError);
+      res.status(500).json({
+        success: false,
+        error: 'AI code review failed',
+        message: aiError.message
+      });
+    }
 
   } catch (error) {
     console.error('Code review error:', error);

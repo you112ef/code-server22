@@ -32,6 +32,11 @@ class AIStudio {
                 if (targetContent) {
                     targetContent.classList.add('active');
                 }
+
+                // Load content for specific tabs
+                if (targetTab === 'providers') {
+                    this.loadProvidersTab();
+                }
             });
         });
     }
@@ -87,12 +92,66 @@ class AIStudio {
         console.log('Test generation initialized');
     }
 
+    async loadProvidersTab() {
+        // Load AI providers when the providers tab is activated
+        if (window.aiProvidersManager) {
+            await window.aiProvidersManager.loadProviders();
+            await window.aiProvidersManager.loadAllModels();
+            this.populateModelSelectors();
+        }
+    }
+
+    populateModelSelectors() {
+        // Populate model selectors with available models
+        const modelSelectors = document.querySelectorAll('#ai-model, #ai-review-model, #ai-debug-model, #ai-test-model');
+        
+        if (window.aiProvidersManager && window.aiProvidersManager.models) {
+            const models = window.aiProvidersManager.models;
+            
+            modelSelectors.forEach(selector => {
+                const currentValue = selector.value;
+                selector.innerHTML = '';
+                
+                // Group models by provider
+                const modelsByProvider = {};
+                models.forEach(model => {
+                    if (!modelsByProvider[model.provider]) {
+                        modelsByProvider[model.provider] = [];
+                    }
+                    modelsByProvider[model.provider].push(model);
+                });
+                
+                // Create optgroups for each provider
+                Object.keys(modelsByProvider).forEach(provider => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = provider.toUpperCase();
+                    
+                    modelsByProvider[provider].forEach(model => {
+                        const option = document.createElement('option');
+                        option.value = model.id;
+                        option.textContent = model.name;
+                        option.title = model.description;
+                        optgroup.appendChild(option);
+                    });
+                    
+                    selector.appendChild(optgroup);
+                });
+                
+                // Restore previous selection if it still exists
+                if (currentValue && selector.querySelector(`option[value="${currentValue}"]`)) {
+                    selector.value = currentValue;
+                }
+            });
+        }
+    }
+
     async generateCode() {
         if (this.isGenerating) return;
 
         const prompt = document.getElementById('ai-prompt').value;
         const language = document.getElementById('ai-language').value;
         const framework = document.getElementById('ai-framework').value;
+        const model = document.getElementById('ai-model').value;
         const codeOutput = document.getElementById('generated-code');
         const generateBtn = document.getElementById('generate-code-btn');
 
@@ -121,6 +180,7 @@ class AIStudio {
                     prompt,
                     language,
                     framework,
+                    model,
                     projectId: this.currentProject?.id || null
                 })
             });
@@ -128,7 +188,7 @@ class AIStudio {
             if (response.ok) {
                 const data = await response.json();
                 this.displayGeneratedCode(data.data.generatedCode, language);
-                this.showNotification('Code generated successfully!', 'success');
+                this.showNotification(`Code generated successfully using ${data.data.model}!`, 'success');
             } else {
                 const error = await response.json();
                 this.showNotification(error.error || 'Failed to generate code', 'error');
